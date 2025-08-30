@@ -1,99 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Canberra Family Bill Tracker (Australian FY)</title>
 <style>
-  :root {
-    --bg: #0e1116;
-    --panel: #151a22;
-    --muted: #8892a5;
-    --text: #e6edf3;
-    --accent: #7dd3fc;
-    --good: #10b981;
-    --warn: #f59e0b;
-    --bad: #ef4444;
-    --line: #232a34;
-    --row1: #1f2937;
-    --row2: #2d3748;
-    --row3: #374151;
-    --row4: #1e3a8a;
-    --row5: #4b5563;
-    --row6: #3b0764;
-    --row7: #064e3b;
-    --row8: #7c2d12;
-    --row9: #4a044e;
-    --row10: #0f766e;
-  }
-  html, body { background: var(--bg); color: var(--text); font-family: Arial, sans-serif; }
-  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-  h1 { font-size: 1.7rem; margin: 0 0 6px; }
-  p.subtitle { color: var(--muted); margin-top: 0; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 14px 0; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 10px 8px; vertical-align: middle; }
-  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 0.9rem; }
-  td small { color: var(--muted); }
-  .qreq { text-align: center; }
-  .mono { font-family: monospace; }
-  .stat.good { color: var(--good); }
-  .stat.warn { color: var(--warn); }
-  .stat.bad  { color: var(--bad); }
-  input, select { padding: 6px; border-radius: 6px; border: 1px solid var(--line); background: #0c1016; color: var(--text); }
-  input[type="number"] { width: 80px; }
-  .totals { display: flex; gap: 10px; margin-top: 12px; }
-  .totals .panel { flex: 1; text-align: center; }
+  body { background: #0e1116; color: #e6edf3; font-family: Arial, sans-serif; }
+  h1 { text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px; border-bottom: 1px solid #232a34; }
+  th { background: #151a22; }
+  input, select { padding: 4px; border-radius: 4px; border: 1px solid #232a34; background: #0c1016; color: #e6edf3; }
+  .good { color: #10b981; }
+  .bad { color: #ef4444; }
+  .warn { color: #f59e0b; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>P.Mopuri Canberra Family Bill Tracker (Australian FY)</h1>
-  <p class="subtitle">Q1 = Jul–Sep, Q2 = Oct–Dec, Q3 = Jan–Mar, Q4 = Apr–Jun</p>
 
-  <div class="panel">
-    <label>Quarter:
-      <select id="quarter">
-        <option value="Q1">Q1 (Jul–Sep)</option>
-        <option value="Q2">Q2 (Oct–Dec)</option>
-        <option value="Q3">Q3 (Jan–Mar)</option>
-        <option value="Q4">Q4 (Apr–Jun)</option>
-      </select>
-    </label>
-    <label>Year:
-      <select id="year"></select>
-    </label>
-  </div>
+<h1>P.Mopuri's Canberra Family Bill Tracker (Australian FY)</h1>
+<p style="text-align:center;">Q1 = Jul–Sep, Q2 = Oct–Dec, Q3 = Jan–Mar, Q4 = Apr–Jun</p>
 
-  <div class="panel">
-    <table id="billTable">
-      <thead>
-        <tr>
-          <th>Bill</th>
-          <th>Avg/Quarter</th>
-          <th>Required?</th>
-          <th>Your Amount</th>
-          <th>Vs Avg</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div class="totals">
-      <div class="panel">
-        <div>Quarter Avg Total</div>
-        <div id="avgTotal" class="mono"></div>
-      </div>
-      <div class="panel">
-        <div>Your Quarter Total</div>
-        <div id="yourTotal" class="mono"></div>
-      </div>
-      <div class="panel">
-        <div>Difference</div>
-        <div id="diffTotal" class="mono"></div>
-      </div>
-    </div>
-  </div>
+<div style="text-align:center;">
+  <label>Quarter:
+    <select id="quarter">
+      <option value="Q1">Q1 (Jul–Sep)</option>
+      <option value="Q2">Q2 (Oct–Dec)</option>
+      <option value="Q3">Q3 (Jan–Mar)</option>
+      <option value="Q4">Q4 (Apr–Jun)</option>
+    </select>
+  </label>
+  <label>Year:
+    <select id="year"></select>
+  </label>
 </div>
 
+<table id="billTable">
+  <thead>
+    <tr>
+      <th>Bill</th>
+      <th>Avg/Quarter</th>
+      <th>Your Amount</th>
+      <th>Vs Avg</th>
+      <th>Required?</th>
+      <th>Paid?</th>
+      <th>Paid Date</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
 <script>
-const DEFAULT_B
+const DEFAULT_BILLS = [
+  { name: "Electricity", avg: 600 },
+  { name: "Gas", avg: 250 },
+  { name: "Water & Sewerage", avg: 240 },
+  { name: "Council Rates", avg: 800 },
+  { name: "Land Tax", avg: 600 },
+  { name: "Internet / NBN", avg: 240 },
+  { name: "Mobile Plans", avg: 360 },
+  { name: "Streaming Services", avg: 120 },
+  { name: "Cloud Storage", avg: 30 },
+  { name: "Software Subscriptions", avg: 60 },
+  { name: "Car Registration", avg: 275 },
+  { name: "Roadside Assistance", avg: 45 },
+  { name: "Car Insurance", avg: 350 },
+  { name: "Public Transport", avg: 90 },
+  { name: "Home & Contents Insurance", avg: 450 },
+  { name: "Family Health Insurance", avg: 1050 },
+  { name: "Life Insurance", avg: 150 },
+  { name: "Income Protection", avg: 300 },
+  { name: "Pet Insurance", avg: 150 },
+  { name: "Mortgage / Rent", avg: 7500 },
+  { name: "Credit Card Payment", avg: 300 },
+  { name: "Personal Loan", avg: 600 },
+  { name: "School Fees", avg: 600 },
+  { name: "School Activities/Uniforms", avg: 150 },
+  { name: "Childcare", avg: 900 },
+  { name: "Pest Control", avg: 40 },
+  { name: "Lawn/Gardening", avg: 120 },
+  { name: "Home Security Monitoring", avg: 75 },
+  { name: "Charitable Donations", avg: 90 },
+  { name: "Medical/Dental Gap", avg: 200 },
+  { name: "Gym/Sports Clubs", avg: 150 }
+];
+
+const rowColors = [
+  "#1f2937", "#2d3748", "#374151", "#1e3a8a", "#4b5563",
+  "#3b0764", "#064e3b", "#7c2d12", "#4a044e", "#0f766e"
+];
+
+const STORAGE_KEY = "canberra_bills_fy";
+
+function initYearSelect() {
+  const yearEl = document.getElementById("year");
+  const thisYear = new Date().getFullYear();
+  for (let y = thisYear - 1; y <= thisYear + 1; y++) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearEl.appendChild(opt);
+  }
+  yearEl.value = thisYear;
+}
+
+function loadState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function stateKey(year, quarter) {
+  return `${year}_${quarter}`;
+}
+
+function renderTable() {
+  const year = document.getElementById("year").value;
+  const quarter = document.getElementById("quarter").value;
+  const key = stateKey(year, quarter);
+  if (!state[key]) {
+    state[key] = DEFAULT_BILLS.map(b => ({
+      required: true,
+      amount: b.avg,
+      paid: false,
+      paidDate: ""
+    }));
+  }
+  const tbody = document.querySelector("#billTable tbody");
+  tbody.innerHTML = "";
+  state[key].forEach((billState, i) => {
+    const bill = DEFAULT_BILLS[i];
+    const diff = billState.amount - bill.avg;
+    const diffClass = diff > 0 ? "bad" : diff < 0 ? "good" : "warn";
+    const tr = document.createElement("tr");
+    tr.style.background = rowColors[i % rowColors.length];
+    tr.innerHTML = `
+      <td>${bill.name}</td>
+      <td>A$${bill.avg}</td>
+      <td><input type="number" value="${billState.amount}"></td>
+      <td class="${diffClass}">${diff > 0 ? "Above" : diff < 0 ? "Below" : "At"} by A$${Math.abs(diff)}</td>
+      <td><input type="checkbox" ${billState.required ? "checked" : ""}></td>
+      <td><input type="checkbox" ${billState.paid ? "checked" : ""}></td>
+      <td><input type="date" value="${billState.paidDate}"></td>
+    `;
+    const amtInput = tr.querySelectorAll("input")[0];
+    const reqChk = tr.querySelectorAll("input")[1];
+    const paidChk = tr.querySelectorAll("input")[2];
+    const dateInput = tr.querySelectorAll("input")[3];
+
+    amtInput.addEventListener("input", () => {
+      billState.amount = parseFloat(amtInput.value) || 0;
+      saveState(state);
+      renderTable();
+    });
+    reqChk.addEventListener("change", () => {
+      billState.required = reqChk.checked;
+      saveState(state);
+    });
+    paidChk.addEventListener("change", () => {
+      billState.paid = paidChk.checked;
+      if (paidChk.checked && !billState.paidDate) {
+        billState.paidDate = new Date().toISOString().split("T")[0];
+        dateInput.value = billState.paidDate;
+      }
+      saveState(state);
+    });
+    dateInput.addEventListener("change", () => {
+      billState.paidDate = dateInput.value;
+      saveState(state);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+initYearSelect();
+let state = loadState();
+document.getElementById("quarter").addEventListener("change", renderTable);
+document.getElementById("year").addEventListener("change", renderTable);
+renderTable();
+</script>
+
+</body>
+</html>
