@@ -63,40 +63,25 @@
 
 <script>
 const DEFAULT_BILLS = [
-  { name: "Electricity", avg: 600 },
-  { name: "Gas", avg: 250 },
-  { name: "Water & Sewerage", avg: 240 },
-  { name: "Council Rates", avg: 800 },
-  { name: "Land Tax", avg: 600 },
-  { name: "Internet / NBN", avg: 240 },
-  { name: "Mobile Plans", avg: 360 },
-  { name: "Streaming Services", avg: 120 },
-  { name: "Cloud Storage", avg: 30 },
-  { name: "Software Subscriptions", avg: 60 },
-  { name: "Car Registration", avg: 275 },
-  { name: "Roadside Assistance", avg: 45 },
-  { name: "Car Insurance", avg: 350 },
-  { name: "Public Transport", avg: 90 },
-  { name: "Home & Contents Insurance", avg: 450 },
-  { name: "Family Health Insurance", avg: 1050 },
-  { name: "Life Insurance", avg: 150 },
-  { name: "Income Protection", avg: 300 },
-  { name: "Pet Insurance", avg: 150 },
-  { name: "Mortgage / Rent", avg: 7500 },
-  { name: "Credit Card Payment", avg: 300 },
-  { name: "Personal Loan", avg: 600 },
-  { name: "School Fees", avg: 600 },
-  { name: "School Activities/Uniforms", avg: 150 },
-  { name: "Childcare", avg: 900 },
-  { name: "Pest Control", avg: 40 },
-  { name: "Lawn/Gardening", avg: 120 },
-  { name: "Home Security Monitoring", avg: 75 },
-  { name: "Charitable Donations", avg: 90 },
-  { name: "Medical/Dental Gap", avg: 200 },
+  { name: "Electricity", avg: 600 }, { name: "Gas", avg: 250 },
+  { name: "Water & Sewerage", avg: 240 }, { name: "Council Rates", avg: 800 },
+  { name: "Land Tax", avg: 600 }, { name: "Internet / NBN", avg: 240 },
+  { name: "Mobile Plans", avg: 360 }, { name: "Streaming Services", avg: 120 },
+  { name: "Cloud Storage", avg: 30 }, { name: "Software Subscriptions", avg: 60 },
+  { name: "Car Registration", avg: 275 }, { name: "Roadside Assistance", avg: 45 },
+  { name: "Car Insurance", avg: 350 }, { name: "Public Transport", avg: 90 },
+  { name: "Home & Contents Insurance", avg: 450 }, { name: "Family Health Insurance", avg: 1050 },
+  { name: "Life Insurance", avg: 150 }, { name: "Income Protection", avg: 300 },
+  { name: "Pet Insurance", avg: 150 }, { name: "Mortgage / Rent", avg: 7500 },
+  { name: "Credit Card Payment", avg: 300 }, { name: "Personal Loan", avg: 600 },
+  { name: "School Fees", avg: 600 }, { name: "School Activities/Uniforms", avg: 150 },
+  { name: "Childcare", avg: 900 }, { name: "Pest Control", avg: 40 },
+  { name: "Lawn/Gardening", avg: 120 }, { name: "Home Security Monitoring", avg: 75 },
+  { name: "Charitable Donations", avg: 90 }, { name: "Medical/Dental Gap", avg: 200 },
   { name: "Gym/Sports Clubs", avg: 150 }
 ];
 
-const STORAGE_KEY = "canberra_bills_fy_v4";
+const STORAGE_KEY = "canberra_bills_fy_v5";
 let state = loadState();
 
 function initYearSelect() {
@@ -128,16 +113,19 @@ function ensureQuarterData(year, quarter) {
   const key = stateKey(year, quarter);
   if (!state[key]) {
     state[key] = DEFAULT_BILLS.map(b => ({
-      name: b.name,
-      avg: b.avg,
-      amount: b.avg,
-      required: true,
-      paid: false,
-      paidDate: "",
-      paidBy: "",
-      dueDate: ""
+      name: b.name, avg: b.avg, amount: b.avg,
+      required: true, paid: false, paidDate: "",
+      paidBy: "", dueDate: ""
     }));
   }
+}
+
+function updateStress(totalPaid, totalAvg) {
+  const meter = document.getElementById("stressMeter");
+  const pct = totalPaid / totalAvg;
+  if (pct < 0.5) { meter.style.background = "#10b981"; meter.textContent = "Bill Stress Meter: Low"; }
+  else if (pct < 1) { meter.style.background = "#f59e0b"; meter.textContent = "Bill Stress Meter: Medium"; }
+  else { meter.style.background = "#ef4444"; meter.textContent = "Bill Stress Meter: High"; }
 }
 
 function renderTable() {
@@ -164,7 +152,4 @@ function renderTable() {
       <td><input type="date" value="${bill.dueDate}"></td>
     `;
     const inputs = tr.querySelectorAll("input");
-    inputs[0].addEventListener("input", e => { bill.name = e.target.value; saveState(); });
-    inputs[1].addEventListener("input", e => { bill.avg = parseFloat(e.target.value)||0; saveState(); updateStress(totalPaid,totalAvg); });
-    inputs[2].addEventListener("input", e => { bill.amount = parseFloat(e.target.value)||0; saveState(); renderTable(); });
-    inputs[3].addEventListener
+    inputs[0].addEvent
