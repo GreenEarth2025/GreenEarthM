@@ -1,93 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Family Bill Tracker</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Canberra Family Bill Tracker (Australian FY)</title>
 <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
-    h1 { text-align: center; }
-    .bill-form, .bill-list { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-    input, select, button { padding: 8px; margin: 5px 0; width: 100%; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
-    .paid { text-decoration: line-through; color: gray; }
+  :root {
+    --bg: #0e1116;
+    --panel: #151a22;
+    --muted: #8892a5;
+    --text: #e6edf3;
+    --accent: #7dd3fc;
+    --good: #10b981;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --line: #232a34;
+    --row1: #1f2937;
+    --row2: #2d3748;
+    --row3: #374151;
+    --row4: #1e3a8a;
+    --row5: #4b5563;
+    --row6: #3b0764;
+    --row7: #064e3b;
+    --row8: #7c2d12;
+    --row9: #4a044e;
+    --row10: #0f766e;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: Arial, sans-serif; }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; }
+  p.subtitle { color: var(--muted); margin-top: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 8px; vertical-align: middle; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 0.9rem; }
+  td small { color: var(--muted); }
+  .qreq { text-align: center; }
+  .mono { font-family: monospace; }
+  .stat.good { color: var(--good); }
+  .stat.warn { color: var(--warn); }
+  .stat.bad  { color: var(--bad); }
+  input, select { padding: 6px; border-radius: 6px; border: 1px solid var(--line); background: #0c1016; color: var(--text); }
+  input[type="number"] { width: 80px; }
+  .totals { display: flex; gap: 10px; margin-top: 12px; }
+  .totals .panel { flex: 1; text-align: center; }
 </style>
 </head>
 <body>
+<div class="wrap">
+  <h1>P.Mopuri Canberra Family Bill Tracker (Australian FY)</h1>
+  <p class="subtitle">Q1 = Jul–Sep, Q2 = Oct–Dec, Q3 = Jan–Mar, Q4 = Apr–Jun</p>
 
-<h1>🏠 P. Mopuri Family Bill Tracker</h1>
+  <div class="panel">
+    <label>Quarter:
+      <select id="quarter">
+        <option value="Q1">Q1 (Jul–Sep)</option>
+        <option value="Q2">Q2 (Oct–Dec)</option>
+        <option value="Q3">Q3 (Jan–Mar)</option>
+        <option value="Q4">Q4 (Apr–Jun)</option>
+      </select>
+    </label>
+    <label>Year:
+      <select id="year"></select>
+    </label>
+  </div>
 
-<div class="bill-form">
-    <h2>Add New Bill</h2>
-    <input type="text" id="billName" placeholder="Bill Name (e.g., Electricity)">
-    <input type="number" id="billAmount" placeholder="Amount ($)">
-    <input type="date" id="billDueDate">
-    <button onclick="addBill()">Add Bill</button>
-</div>
-
-<div class="bill-list">
-    <h2>Upcoming Bills</h2>
+  <div class="panel">
     <table id="billTable">
-        <thead>
-            <tr>
-                <th>Bill</th>
-                <th>Amount</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
+      <thead>
+        <tr>
+          <th>Bill</th>
+          <th>Avg/Quarter</th>
+          <th>Required?</th>
+          <th>Your Amount</th>
+          <th>Vs Avg</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
     </table>
+    <div class="totals">
+      <div class="panel">
+        <div>Quarter Avg Total</div>
+        <div id="avgTotal" class="mono"></div>
+      </div>
+      <div class="panel">
+        <div>Your Quarter Total</div>
+        <div id="yourTotal" class="mono"></div>
+      </div>
+      <div class="panel">
+        <div>Difference</div>
+        <div id="diffTotal" class="mono"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-    let bills = [];
-
-    function addBill() {
-        const name = document.getElementById('billName').value;
-        const amount = document.getElementById('billAmount').value;
-        const dueDate = document.getElementById('billDueDate').value;
-
-        if (name && amount && dueDate) {
-            bills.push({ name, amount, dueDate, paid: false });
-            renderBills();
-            document.getElementById('billName').value = '';
-            document.getElementById('billAmount').value = '';
-            document.getElementById('billDueDate').value = '';
-        }
-    }
-
-    function togglePaid(index) {
-        bills[index].paid = !bills[index].paid;
-        renderBills();
-    }
-
-    function deleteBill(index) {
-        bills.splice(index, 1);
-        renderBills();
-    }
-
-    function renderBills() {
-        const tableBody = document.querySelector('#billTable tbody');
-        tableBody.innerHTML = '';
-        bills.forEach((bill, index) => {
-            tableBody.innerHTML += `
-                <tr class="${bill.paid ? 'paid' : ''}">
-                    <td>${bill.name}</td>
-                    <td>$${bill.amount}</td>
-                    <td>${bill.dueDate}</td>
-                    <td>${bill.paid ? 'Paid' : 'Unpaid'}</td>
-                    <td>
-                        <button onclick="togglePaid(${index})">${bill.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
-                        <button onclick="deleteBill(${index})">Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-</script>
-
-</body>
-</html>
+const DEFAULT_B
