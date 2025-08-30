@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Canberra Family Bill Tracker (Australian FY)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   body { background: #0e1116; color: #e6edf3; font-family: Arial, sans-serif; }
   h1 { text-align: center; }
@@ -11,9 +13,11 @@
   th, td { padding: 8px; border-bottom: 1px solid #232a34; }
   th { background: #151a22; }
   input, select { padding: 4px; border-radius: 4px; border: 1px solid #232a34; background: #0c1016; color: #e6edf3; }
-  .good { color: #10b981; }
-  .bad { color: #ef4444; }
-  .warn { color: #f59e0b; }
+  .unpaid { color: red; font-weight: bold; }
+  .controls { text-align: center; margin: 10px 0; }
+  button { padding: 6px 12px; margin: 4px; border-radius: 4px; border: none; background: #2563eb; color: white; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  #stressMeter { text-align: center; padding: 10px; margin-top: 10px; border-radius: 8px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -21,7 +25,7 @@
 <h1>P.Mopuri's Canberra Family Bill Tracker (Australian FY)</h1>
 <p style="text-align:center;">Q1 = Jul–Sep, Q2 = Oct–Dec, Q3 = Jan–Mar, Q4 = Apr–Jun</p>
 
-<div style="text-align:center;">
+<div class="controls">
   <label>Quarter:
     <select id="quarter">
       <option value="Q1">Q1 (Jul–Sep)</option>
@@ -33,7 +37,11 @@
   <label>Year:
     <select id="year"></select>
   </label>
+  <button id="addBill">Add New Bill</button>
+  <button id="generatePDF">Generate PDF Summary</button>
 </div>
+
+<div id="stressMeter">Bill Stress Meter: Loading...</div>
 
 <table id="billTable">
   <thead>
@@ -41,14 +49,17 @@
       <th>Bill</th>
       <th>Avg/Quarter</th>
       <th>Your Amount</th>
-      <th>Vs Avg</th>
       <th>Required?</th>
       <th>Paid?</th>
       <th>Paid Date</th>
+      <th>Paid By</th>
+      <th>Due Date</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
+
+<canvas id="billChart" style="margin-top:20px;"></canvas>
 
 <script>
 const DEFAULT_BILLS = [
@@ -85,12 +96,8 @@ const DEFAULT_BILLS = [
   { name: "Gym/Sports Clubs", avg: 150 }
 ];
 
-const rowColors = [
-  "#1f2937", "#2d3748", "#374151", "#1e3a8a", "#4b5563",
-  "#3b0764", "#064e3b", "#7c2d12", "#4a044e", "#0f766e"
-];
-
-const STORAGE_KEY = "canberra_bills_fy";
+const STORAGE_KEY = "canberra_bills_fy_v3";
+let state = loadState();
 
 function initYearSelect() {
   const yearEl = document.getElementById("year");
@@ -109,7 +116,7 @@ function loadState() {
   return raw ? JSON.parse(raw) : {};
 }
 
-function saveState(state) {
+function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
@@ -117,72 +124,47 @@ function stateKey(year, quarter) {
   return `${year}_${quarter}`;
 }
 
-function renderTable() {
-  const year = document.getElementById("year").value;
-  const quarter = document.getElementById("quarter").value;
+function ensureQuarterData(year, quarter) {
   const key = stateKey(year, quarter);
   if (!state[key]) {
     state[key] = DEFAULT_BILLS.map(b => ({
-      required: true,
+      name: b.name,
+      avg: b.avg,
       amount: b.avg,
+      required: true,
       paid: false,
-      paidDate: ""
+      paidDate: "",
+      paidBy: "",
+      dueDate: ""
     }));
   }
-  const tbody = document.querySelector("#billTable tbody");
-  tbody.innerHTML = "";
-  state[key].forEach((billState, i) => {
-    const bill = DEFAULT_BILLS[i];
-    const diff = billState.amount - bill.avg;
-    const diffClass = diff > 0 ? "bad" : diff < 0 ? "good" : "warn";
-    const tr = document.createElement("tr");
-    tr.style.background = rowColors[i % rowColors.length];
-    tr.innerHTML = `
-      <td>${bill.name}</td>
-      <td>A$${bill.avg}</td>
-      <td><input type="number" value="${billState.amount}"></td>
-      <td class="${diffClass}">${diff > 0 ? "Above" : diff < 0 ? "Below" : "At"} by A$${Math.abs(diff)}</td>
-      <td><input type="checkbox" ${billState.required ? "checked" : ""}></td>
-      <td><input type="checkbox" ${billState.paid ? "checked" : ""}></td>
-      <td><input type="date" value="${billState.paidDate}"></td>
-    `;
-    const amtInput = tr.querySelectorAll("input")[0];
-    const reqChk = tr.querySelectorAll("input")[1];
-    const paidChk = tr.querySelectorAll("input")[2];
-    const dateInput = tr.querySelectorAll("input")[3];
-
-    amtInput.addEventListener("input", () => {
-      billState.amount = parseFloat(amtInput.value) || 0;
-      saveState(state);
-      renderTable();
-    });
-    reqChk.addEventListener("change", () => {
-      billState.required = reqChk.checked;
-      saveState(state);
-    });
-    paidChk.addEventListener("change", () => {
-      billState.paid = paidChk.checked;
-      if (paidChk.checked && !billState.paidDate) {
-        billState.paidDate = new Date().toISOString().split("T")[0];
-        dateInput.value = billState.paidDate;
-      }
-      saveState(state);
-    });
-    dateInput.addEventListener("change", () => {
-      billState.paidDate = dateInput.value;
-      saveState(state);
-    });
-
-    tbody.appendChild(tr);
-  });
 }
 
-initYearSelect();
-let state = loadState();
-document.getElementById("quarter").addEventListener("change", renderTable);
-document.getElementById("year").addEventListener("change", renderTable);
-renderTable();
-</script>
-
-</body>
-</html>
+function renderTable() {
+  const year = document.getElementById("year").value;
+  const quarter = document.getElementById("quarter").value;
+  ensureQuarterData(year, quarter);
+  const key = stateKey(year, quarter);
+  const tbody = document.querySelector("#billTable tbody");
+  tbody.innerHTML = "";
+  let totalPaid = 0, totalAvg = 0;
+  state[key].forEach((bill, i) => {
+    if (bill.paid) totalPaid += bill.amount;
+    if (bill.required) totalAvg += bill.avg;
+    const tr = document.createElement("tr");
+    if (!bill.paid) tr.classList.add("unpaid");
+    tr.innerHTML = `
+      <td><input type="text" value="${bill.name}"></td>
+      <td><input type="number" value="${bill.avg}"></td>
+      <td><input type="number" value="${bill.amount}"></td>
+      <td><input type="checkbox" ${bill.required ? "checked" : ""}></td>
+      <td><input type="checkbox" ${bill.paid ? "checked" : ""}></td>
+      <td><input type="date" value="${bill.paidDate}"></td>
+      <td><input type="text" value="${bill.paidBy}"></td>
+      <td><input type="date" value="${bill.dueDate}"></td>
+    `;
+    const inputs = tr.querySelectorAll("input");
+    inputs[0].addEventListener("input", e => { bill.name = e.target.value; saveState(); });
+    inputs[1].addEventListener("input", e => { bill.avg = parseFloat(e.target.value)||0; saveState(); });
+    inputs[2].addEventListener("input", e => { bill.amount = parseFloat(e.target.value)||0; saveState(); });
+    inputs[3].addEventListener("change", e => { bill
