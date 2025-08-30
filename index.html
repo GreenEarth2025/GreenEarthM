@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Bill Tracker</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    h1 { text-align: center; }
+    .bill-form, .bill-list { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    input, select, button { padding: 8px; margin: 5px 0; width: 100%; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+    .paid { text-decoration: line-through; color: gray; }
+</style>
+</head>
+<body>
+
+<h1>🏠 P. Mopuri Family Bill Tracker</h1>
+
+<div class="bill-form">
+    <h2>Add New Bill</h2>
+    <input type="text" id="billName" placeholder="Bill Name (e.g., Electricity)">
+    <input type="number" id="billAmount" placeholder="Amount ($)">
+    <input type="date" id="billDueDate">
+    <button onclick="addBill()">Add Bill</button>
+</div>
+
+<div class="bill-list">
+    <h2>Upcoming Bills</h2>
+    <table id="billTable">
+        <thead>
+            <tr>
+                <th>Bill</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    let bills = [];
+
+    function addBill() {
+        const name = document.getElementById('billName').value;
+        const amount = document.getElementById('billAmount').value;
+        const dueDate = document.getElementById('billDueDate').value;
+
+        if (name && amount && dueDate) {
+            bills.push({ name, amount, dueDate, paid: false });
+            renderBills();
+            document.getElementById('billName').value = '';
+            document.getElementById('billAmount').value = '';
+            document.getElementById('billDueDate').value = '';
+        }
+    }
+
+    function togglePaid(index) {
+        bills[index].paid = !bills[index].paid;
+        renderBills();
+    }
+
+    function deleteBill(index) {
+        bills.splice(index, 1);
+        renderBills();
+    }
+
+    function renderBills() {
+        const tableBody = document.querySelector('#billTable tbody');
+        tableBody.innerHTML = '';
+        bills.forEach((bill, index) => {
+            tableBody.innerHTML += `
+                <tr class="${bill.paid ? 'paid' : ''}">
+                    <td>${bill.name}</td>
+                    <td>$${bill.amount}</td>
+                    <td>${bill.dueDate}</td>
+                    <td>${bill.paid ? 'Paid' : 'Unpaid'}</td>
+                    <td>
+                        <button onclick="togglePaid(${index})">${bill.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
+                        <button onclick="deleteBill(${index})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+</script>
+
+</body>
+</html>
